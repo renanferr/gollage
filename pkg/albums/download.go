@@ -28,7 +28,7 @@ func (d *Downloader) WithAlbums(a ...*Album) *Downloader {
 }
 
 func (d *Downloader) AsyncDownloadAll(ctx context.Context, out chan *Album) error {
-	var g errgroup.Group
+	g, ctx := errgroup.WithContext(ctx)
 	for _, a := range d.albums {
 		func(a *Album) {
 			g.Go(func() error {

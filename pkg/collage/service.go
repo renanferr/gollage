@@ -12,7 +12,7 @@ import (
 var RGBA_BLACK = color.RGBA{0x00, 0x00, 0x00, 0x00}
 
 type Service interface {
-	Compose(ctx context.Context, albums []*albums.Album, rows, cols, width, height int) image.Image
+	Compose(ctx context.Context, albums []*albums.Album, rows, cols, width, height int) (image.Image, error)
 }
 
 type service struct{}
@@ -28,7 +28,7 @@ func getBounds(img image.Image) (int, int, int, int) {
 		img.Bounds().Max.Y
 }
 
-func (s *service) Compose(ctx context.Context, a []*albums.Album, rows, cols, width, height int) image.Image {
+func (s *service) Compose(ctx context.Context, a []*albums.Album, rows, cols, width, height int) (image.Image, error) {
 	return NewCollageBuilder().
 		WithDownloader(albums.NewDownloader()).
 		WithAlbums(a).

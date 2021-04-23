@@ -69,10 +69,11 @@ type errorResponse struct {
 	Message string `json:"message"`
 }
 
-func sendErrorResponse(w http.ResponseWriter, status int, message string) {
+func sendErrorResponse(w http.ResponseWriter, status int, err error) {
+	log.Println(err)
 	w.WriteHeader(status)
 	w.Header().Set("Content-type", "application/json")
-	if err := json.NewEncoder(w).Encode(&errorResponse{message}); err != nil {
+	if err := json.NewEncoder(w).Encode(&errorResponse{err.Error()}); err != nil {
 		log.Panicf("error encoding error response: %s", err)
 	}
 }
@@ -89,15 +90,16 @@ func getCollage(c collage.Service, a albums.Service) func(w http.ResponseWriter,
 
 		a, err := a.GetTopAlbums(opts.Username, opts.Period, opts.Limit)
 		if err != nil {
-			log.Print(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			sendErrorResponse(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		// d.DownloadAll()
+		img, err := c.Compose(r.Context(), a, opts.Rows, opts.Cols, opts.Width, opts.Height)
+		if err != nil {
+			sendErrorResponse(w, http.StatusInternalServerError, err)
+			return
+		}
 
-		// log.Println(opts)
-		img := c.Compose(r.Context(), a, opts.Rows, opts.Cols, opts.Width, opts.Height)
 		w.Header().Set("Content-type", "image/png")
 		png.Encode(w, img)
 		w.WriteHeader(http.StatusOK)
