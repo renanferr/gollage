@@ -37,8 +37,3 @@ func (c *Collage) Paste(img image.Image, x, y int) {
 		y++
 	}
 }
-
-func toRGBA(c color.Color) *color.RGBA {
-	r, g, b, a := c.RGBA()
-	return &color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
-}

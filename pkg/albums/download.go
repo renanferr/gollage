@@ -1,35 +1,60 @@
-package image
+package albums
 
 import (
+	"context"
 	"errors"
 	"image"
 	"log"
 	"net/http"
 
-	"github.com/renanferr/gollage/pkg/albums"
 	"golang.org/x/sync/errgroup"
 )
 
 type Downloader struct {
-	albums  []*albums.Album
+	albums  []*Album
 	decoder *Decoder
 }
 
-func NewDownloader(albums []*albums.Album) *Downloader {
+func NewDownloader() *Downloader {
 	d := new(Downloader)
-	d.albums = albums
+	d.albums = []*Album{}
 	d.decoder = NewDecoder()
 	return d
 }
 
-func (d *Downloader) DownloadAll() {
+func (d *Downloader) WithAlbums(a ...*Album) *Downloader {
+	d.albums = append(d.albums, a...)
+	return d
+}
+
+func (d *Downloader) AsyncDownloadAll(ctx context.Context, out chan *Album) error {
+	var g errgroup.Group
+	for _, a := range d.albums {
+		func(a *Album) {
+			g.Go(func() error {
+				img, err := d.download(ctx, a.ImageUrl)
+				if err != nil {
+					log.Printf("error downloading image: %s", err.Error())
+				}
+				a.CoverImage = img
+				out <- a
+				return nil
+			})
+
+		}(a)
+	}
+	return g.Wait()
+
+}
+
+func (d *Downloader) DownloadAll(ctx context.Context) {
 	var g errgroup.Group
 	images := make(map[int]image.Image)
 	for _, a := range d.albums {
 		url := a.ImageUrl
 		rank := a.Rank
 		g.Go(func() error {
-			img, err := d.download(url)
+			img, err := d.download(ctx, url)
 			if err != nil {
 				log.Printf("error downloading image: %s", err.Error())
 			}
@@ -49,7 +74,7 @@ func (d *Downloader) DownloadAll() {
 
 }
 
-func (d *Downloader) download(url string) (image.Image, error) {
+func (d *Downloader) download(ctx context.Context, url string) (image.Image, error) {
 	log.Printf("downloading image: %s", url)
 	resp, err := http.Get(url)
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/renanferr/gollage/pkg/albums"
 	"github.com/renanferr/gollage/pkg/collage"
-	"github.com/renanferr/gollage/pkg/util/image"
 )
 
 const (
@@ -88,20 +87,17 @@ func getCollage(c collage.Service, a albums.Service) func(w http.ResponseWriter,
 			return
 		}
 
-		albums, err := a.GetTopAlbums(opts.Username, opts.Period, opts.Limit)
+		a, err := a.GetTopAlbums(opts.Username, opts.Period, opts.Limit)
 		if err != nil {
 			log.Print(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		d := image.NewDownloader(albums)
+		// d.DownloadAll()
 
-		d.DownloadAll()
-
-		log.Println(opts)
-		img := c.Compose(albums, opts.Rows, opts.Cols, opts.Width, opts.Height)
-
+		// log.Println(opts)
+		img := c.Compose(r.Context(), a, opts.Rows, opts.Cols, opts.Width, opts.Height)
 		w.Header().Set("Content-type", "image/png")
 		png.Encode(w, img)
 		w.WriteHeader(http.StatusOK)

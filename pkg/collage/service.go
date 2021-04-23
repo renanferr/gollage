@@ -1,6 +1,7 @@
 package collage
 
 import (
+	"context"
 	"image"
 	"image/color"
 	"log"
@@ -11,7 +12,7 @@ import (
 var RGBA_BLACK = color.RGBA{0x00, 0x00, 0x00, 0x00}
 
 type Service interface {
-	Compose(albums []*albums.Album, rows, cols, width, height int) image.Image
+	Compose(ctx context.Context, albums []*albums.Album, rows, cols, width, height int) image.Image
 }
 
 type service struct{}
@@ -27,7 +28,14 @@ func getBounds(img image.Image) (int, int, int, int) {
 		img.Bounds().Max.Y
 }
 
-func (s *service) Compose(albums []*albums.Album, rows, cols, width, height int) image.Image {
+func (s *service) Compose(ctx context.Context, a []*albums.Album, rows, cols, width, height int) image.Image {
+	return NewCollageBuilder().
+		WithDownloader(albums.NewDownloader()).
+		WithAlbums(a).
+		Build(ctx)
+}
+
+func (s *service) compose(albums []*albums.Album, rows, cols, width, height int) image.Image {
 	rect := image.Rect(0, 0, width, height)
 	rgba := image.NewRGBA(rect)
 	collage := NewCollage(rgba)
@@ -55,6 +63,6 @@ func (s *service) Compose(albums []*albums.Album, rows, cols, width, height int)
 		y += offsetY
 		x = 0
 	}
-	// return images[2]
+
 	return collage
 }
